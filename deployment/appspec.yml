@@ -1,0 +1,30 @@
+version: 0.0
+os: linux
+files:
+  - source: lib
+    destination: /opt/dataservice/lib
+  - source: bin
+    destination: /opt/dataservice/bin
+  - source: configure
+    destination: /opt/dataservice
+hooks:
+  BeforeInstall:
+    - location: scripts/BeforeInstall
+      timeout: 300
+      runas: root
+  AfterInstall:
+    - location: scripts/AfterInstall
+      timeout: 300
+      runas: root
+  ApplicationStop:
+    - location: scripts/ApplicationStop
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: scripts/ApplicationStart
+      timeout: 300
+      runas: root
+  ValidateService:
+    - location: scripts/ValidateService
+      timeout: 300
+      runas: root

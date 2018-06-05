@@ -1,0 +1,11 @@
+#!/bin/bash
+
+/opt/dataservice/bin/upgrade_java
+
+if [ -f /etc/init.d/dataservice ]; then
+  rm -rf /etc/init.d/dataservice
+fi
+
+ln -s /opt/dataservice/bin/dataservice /etc/init.d/dataservice
+
+/sbin/chkconfig dataservice on

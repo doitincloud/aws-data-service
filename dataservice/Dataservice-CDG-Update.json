@@ -1,0 +1,62 @@
+{
+    "applicationName": "",
+    "deploymentGroupName": "",
+    "deploymentConfigName": "CodeDeployDefault.HalfAtATime",
+    "ec2TagFilters": [
+      {
+          "Key": "Name",
+          "Value": "Dataservice Server",
+          "Type": "KEY_AND_VALUE"
+      },
+      {
+          "Key": "CodeDeploy",
+          "Value": "TRUE",
+          "Type": "KEY_AND_VALUE"
+      }
+    ],
+    "autoScalingGroups": [
+        ""
+    ],
+    "serviceRoleArn": "",
+    "triggerConfigurations": [
+        {
+            "triggerName": "DeploymentStatus",
+            "triggerTargetArn": "",
+            "triggerEvents": [
+                "DeploymentStart",
+                "DeploymentSuccess",
+                "DeploymentFailure",
+                "DeploymentStop",
+                "DeploymentRollback",
+                "InstanceFailure"
+            ]
+        }
+    ],
+    "alarmConfiguration": {
+        "enabled": true,
+        "ignorePollAlarmFailure": true,
+        "alarms": [
+            {
+                "name": "StopUpdateAlarm"
+            }
+        ]
+    },
+    "autoRollbackConfiguration": {
+        "enabled": true,
+        "events": [
+            "DEPLOYMENT_STOP_ON_ALARM",
+            "DEPLOYMENT_FAILURE"
+        ]
+    },
+    "deploymentStyle": {
+        "deploymentType": "IN_PLACE",
+        "deploymentOption": "WITH_TRAFFIC_CONTROL"
+    },
+    "loadBalancerInfo": {
+        "targetGroupInfoList": [
+            {
+                "name": "DataserviceTargetGroup"
+            }
+        ]
+    }
+}

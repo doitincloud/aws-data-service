@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+##
+# Copyright 2017 Sam Wen.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+# cleanup s3 bucket and delete 3 stacks resources, database and dataservice
+#
+import sys
+import json
+import os
+import time
+
+import utils
+
+config = {}
+
+project_dir = os.path.dirname((os.path.dirname(os.path.abspath(__file__))))
+os.chdir(project_dir) 
+
+cleanup_all = utils.cleanup_parse_args(config)
+
+verbose = config['verbose']
+del(config['verbose'])
+
+#############################################################################################
+# work on dataservice stack
+#
+stack_name = 'dataservice'
+
+stack_status = utils.check_stack(stack_name)
+
+if stack_status != 'NOT_EXISTS':
+    stack_status = utils.delete_stack(stack_name, stack_status)
+
+#############################################################################################
+# work on database stack
+#
+stack_name = 'database'
+
+stack_status = utils.check_stack(stack_name)
+
+if stack_status != 'NOT_EXISTS':
+    stack_status = utils.delete_stack(stack_name, stack_status)
+
+#############################################################################################
+# if clean all - work on s3_bucket and retained resources
+#
+if cleanup_all:
+    utils.delete_s3_bucket()
+    utils.delete_retained_resources()
+
+#############################################################################################
+# work on resources stack
+#
+stack_name = 'resources'
+
+stack_status = utils.check_stack(stack_name)
+
+if stack_status != 'NOT_EXISTS':
+    utils.remove_update_deployment_group('Dataservice-CDG-Update')
+    stack_status = utils.delete_stack(stack_name, stack_status)
+
+#############################################################################################
+# move all files in ./tmp/folder to a timestamped sub folder
+#
+saved_folder = 'tmp/' + time.strftime('%Y%m%d-%H%M%S')
+os.makedirs(saved_folder, exist_ok=True)
+utils.run_exit_code('mv tmp/*.json '+ saved_folder, '')
+utils.run_exit_code('mv tmp/*.text '+ saved_folder, '')

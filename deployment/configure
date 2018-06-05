@@ -1,0 +1,5 @@
+export JAR_FILE=server-1.0.1.jar
+export S3_BUCKET=dataservice-us-east-1-XXXXXXXXXXX
+export DB_HOST_NAME=MY-IP-ADDRESS
+export DB_USER_PASS=dsPassword
+export DB_USER_NAME=dsUser

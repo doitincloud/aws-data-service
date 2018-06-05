@@ -1,0 +1,122 @@
+#!/bin/bash
+##
+# Copyright 2017 Sam Wen.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+#
+# dataservice: data service daemon
+#
+# chkconfig:    - 95 5
+#
+# description:  Runs spring data service
+#
+# source function library
+. /etc/rc.d/init.d/functions
+
+# source configurations
+. /opt/dataservice/configure
+
+RC='\033[0;31m'   # red
+GC='\033[0;32m'   # green
+YC='\033[4;33m'   # yellow
+NC='\033[0m'      # no color
+TABS3='\t\t\t'
+TABS6='\t\t\t\t\t\t'
+
+RETVAL=0
+
+EXEC="/usr/bin/java -jar /opt/dataservice/lib/${JAR_FILE}"
+SERVICE="dataservice"
+PID_FILE="/var/run/${SERVICE}.pid"
+LOCK_FILE="/var/lock/subsys/${SERVICE}"
+
+start() {
+        echo -n $"Starting: "
+        if PID=$(/usr/bin/pgrep -f "$EXEC"); then
+            echo -n $"Already running ($PID)"
+            RETVAL=0
+            echo -e ${TABS3}[${YC}WARNING${NC}]
+        else
+            $EXEC > /var/log/${SERVICE}-out.log 2>&1 &
+            # run loop check for failed fast
+            for ((i=1;i<10;i++)); do
+                sleep 3
+                if ! PID=$(/usr/bin/pgrep -f "$EXEC"); then
+                    echo -e ${TABS6}[${RC}FAILED${NC}]
+                    RETVAL=1
+                    return $RETVAL
+                fi
+                if [[ "$i" > "4" ]]; then
+                  response=$(curl http://localhost:8080/ds/v1 \
+                    --write-out %{http_code} \
+                    --silent \
+                    --output /dev/null)
+                    if [[ "$response" == "200" ]]; then
+                      break
+                    fi 
+                fi
+            done
+            RETVAL=0
+            touch $LOCK_FILE
+            echo $PID > $PID_FILE
+            echo -e ${TABS6}[${GC}OK${NC}]
+        fi
+        return $RETVAL
+}
+
+stop() {
+        echo -n $"Shutting down: "
+        if PID=$(/usr/bin/pgrep -f "$EXEC"); then
+            /usr/bin/kill $PID
+            RETVAL=0
+            rm -f $LOCK_FILE
+            rm -f $PID_FILE
+            echo -e ${TABS6}[${GC}OK${NC}]
+        else
+            echo -n $"Process not found"
+            echo -e ${TABS3}[${YC}WARNING${NC}]
+            RETVAL=0
+        fi
+        return $RETVAL
+}
+
+restart() {
+        echo 'dataservice restart' >> /var/log/deployment.log
+        stop
+        start
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  restart|force-reload|reload)
+        restart
+        ;;
+  condrestart|try-restart)
+        [ -f $LOCK_FIE ] && restart
+        ;;
+  status)
+        status -p $PID_FILE $SERVICE
+        RETVAL=$?
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart}"
+        exit 1
+esac
+
+exit $RETVAL

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# run loop check for failed fast
+for ((i=1;i<10;i++)); do
+    response=$(curl http://localhost:8080/ds/v1 \
+      --write-out %{http_code} \
+      --silent \
+      --output /dev/null)
+    if [[ "$response" == "200" ]]; then
+      exit 0
+    fi 
+    sleep 6
+done
+
+exit 1

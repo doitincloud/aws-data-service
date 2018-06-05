@@ -1,0 +1,7 @@
+1) 8/27/2017 Add this file to avoid to hit a Bug in AWS Codedeploy
+
+    When handling copy files,
+    if source is a folder and only 1 file in the folder, 
+    the destination file name becomes the folder name instead of the filename.
+    It happened once, but not always happen, worked in other tests.
+

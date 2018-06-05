@@ -1,0 +1,41 @@
+# files folders excluded
+.DS_Store
+*.iml
+classpath.txt
+.idea
+.aws
+.ssh
+.pem
+.pyc
+target
+logs
+apache-maven*
+.datadir
+.local-repo
+notes
+tmp
+__pycache__
+
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.rpm
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*

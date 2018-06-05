@@ -1,0 +1,561 @@
+##
+# Copyright 2017 Sam Wen.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Create a MySQL database with employees data'
+Parameters:
+  ResourcesStackName:
+    Default: resources
+    Description: Resources Stack Name
+    Type: String
+    MinLength: '1'
+    MaxLength: '128'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9\-]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters and -.
+  VpcId:
+    Default: ''
+    Type: String
+    Description: 'Optional, VpcId of your existing VPC'
+    ConstraintDescription: must be the VPC Id of an existing Virtual Private Cloud.
+  Subnet:
+    Default: ''
+    Type: String
+    Description: 'Optional, SubnetId in your VPC'
+    ConstraintDescription: It should be residing in the selected Virtual Private Cloud.
+  InstanceType:
+    Description: Database EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m1.small
+      - m1.medium
+      - m1.large
+      - m1.xlarge
+      - m2.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - m3.medium
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - c1.medium
+      - c1.xlarge
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - g2.2xlarge
+      - g2.8xlarge
+      - r3.large
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - i2.xlarge
+      - i2.2xlarge
+      - i2.4xlarge
+      - i2.8xlarge
+      - d2.xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - hi1.4xlarge
+      - hs1.8xlarge
+      - cr1.8xlarge
+      - cc2.8xlarge
+      - cg1.4xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+  DBUser:
+    Default: dsUser
+    Description: Username for MySQL database access
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBPassword:
+    Default: dsPassword
+    Description: Password for MySQL database access
+    Type: String
+    NoEcho: 'true'
+    MinLength: '1'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+  DBRootPassword:
+    Default: newPassword
+    Description: Root password for MySQL
+    Type: String
+    NoEcho: 'true'
+    MinLength: '1'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+  SSHLocation:
+    Description: 'Optional, IP address range that can be used to SSH to the EC2 instances'
+    Type: String
+    Default: ''
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+  DefaultSecurityGroup:
+    Default: ''
+    Description: 'Optiona, default Security group id'
+    Type: String
+  KeyName:
+    Default: ''
+    Description: 'Optional, an existing EC2 KeyPair to enable SSH access to the instance'
+    Type: String
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+Conditions:
+  ImportVpcId: !Equals 
+    - !Ref VpcId
+    - ''
+  ImportSubnet: !Equals 
+    - !Ref Subnet
+    - ''
+  ImportKeyName: !Equals 
+    - !Ref KeyName
+    - ''
+  ImportSSHLocation: !Equals 
+    - !Ref SSHLocation
+    - ''
+  ImportDefaultSecurityGroup: !Equals 
+    - !Ref DefaultSecurityGroup
+    - ''
+Mappings:
+  AWSInstanceType2Arch:
+    t1.micro:
+      Arch: PV64
+    t2.nano:
+      Arch: HVM64
+    t2.micro:
+      Arch: HVM64
+    t2.small:
+      Arch: HVM64
+    t2.medium:
+      Arch: HVM64
+    t2.large:
+      Arch: HVM64
+    m1.small:
+      Arch: PV64
+    m1.medium:
+      Arch: PV64
+    m1.large:
+      Arch: PV64
+    m1.xlarge:
+      Arch: PV64
+    m2.xlarge:
+      Arch: PV64
+    m2.2xlarge:
+      Arch: PV64
+    m2.4xlarge:
+      Arch: PV64
+    m3.medium:
+      Arch: HVM64
+    m3.large:
+      Arch: HVM64
+    m3.xlarge:
+      Arch: HVM64
+    m3.2xlarge:
+      Arch: HVM64
+    m4.large:
+      Arch: HVM64
+    m4.xlarge:
+      Arch: HVM64
+    m4.2xlarge:
+      Arch: HVM64
+    m4.4xlarge:
+      Arch: HVM64
+    m4.10xlarge:
+      Arch: HVM64
+    c1.medium:
+      Arch: PV64
+    c1.xlarge:
+      Arch: PV64
+    c3.large:
+      Arch: HVM64
+    c3.xlarge:
+      Arch: HVM64
+    c3.2xlarge:
+      Arch: HVM64
+    c3.4xlarge:
+      Arch: HVM64
+    c3.8xlarge:
+      Arch: HVM64
+    c4.large:
+      Arch: HVM64
+    c4.xlarge:
+      Arch: HVM64
+    c4.2xlarge:
+      Arch: HVM64
+    c4.4xlarge:
+      Arch: HVM64
+    c4.8xlarge:
+      Arch: HVM64
+    g2.2xlarge:
+      Arch: HVMG2
+    g2.8xlarge:
+      Arch: HVMG2
+    r3.large:
+      Arch: HVM64
+    r3.xlarge:
+      Arch: HVM64
+    r3.2xlarge:
+      Arch: HVM64
+    r3.4xlarge:
+      Arch: HVM64
+    r3.8xlarge:
+      Arch: HVM64
+    i2.xlarge:
+      Arch: HVM64
+    i2.2xlarge:
+      Arch: HVM64
+    i2.4xlarge:
+      Arch: HVM64
+    i2.8xlarge:
+      Arch: HVM64
+    d2.xlarge:
+      Arch: HVM64
+    d2.2xlarge:
+      Arch: HVM64
+    d2.4xlarge:
+      Arch: HVM64
+    d2.8xlarge:
+      Arch: HVM64
+    hi1.4xlarge:
+      Arch: HVM64
+    hs1.8xlarge:
+      Arch: HVM64
+    cr1.8xlarge:
+      Arch: HVM64
+    cc2.8xlarge:
+      Arch: HVM64
+  AWSRegionArch2AMI:
+    us-east-1:
+      PV64: ami-2a69aa47
+      HVM64: ami-6869aa05
+      HVMG2: ami-c5eadcd3
+    us-west-2:
+      PV64: ami-7f77b31f
+      HVM64: ami-7172b611
+      HVMG2: ami-aaebfcd3
+    us-west-1:
+      PV64: ami-a2490dc2
+      HVM64: ami-31490d51
+      HVMG2: ami-68002c08
+    eu-west-1:
+      PV64: ami-4cdd453f
+      HVM64: ami-f9dd458a
+      HVMG2: ami-ed947194
+    eu-west-2:
+      PV64: NOT_SUPPORTED
+      HVM64: ami-886369ec
+      HVMG2: NOT_SUPPORTED
+    eu-central-1:
+      PV64: ami-6527cf0a
+      HVM64: ami-ea26ce85
+      HVMG2: ami-cf3294a0
+    ap-northeast-1:
+      PV64: ami-3e42b65f
+      HVM64: ami-374db956
+      HVMG2: ami-4e0e1f29
+    ap-northeast-2:
+      PV64: NOT_SUPPORTED
+      HVM64: ami-2b408b45
+      HVMG2: NOT_SUPPORTED
+    ap-southeast-1:
+      PV64: ami-df9e4cbc
+      HVM64: ami-a59b49c6
+      HVMG2: ami-f35cd290
+    ap-southeast-2:
+      PV64: ami-63351d00
+      HVM64: ami-dc361ebf
+      HVMG2: ami-e77c6f84
+    ap-south-1:
+      PV64: NOT_SUPPORTED
+      HVM64: ami-ffbdd790
+      HVMG2: ami-5b6e1034
+    us-east-2:
+      PV64: NOT_SUPPORTED
+      HVM64: ami-f6035893
+      HVMG2: NOT_SUPPORTED
+    ca-central-1:
+      PV64: NOT_SUPPORTED
+      HVM64: ami-730ebd17
+      HVMG2: NOT_SUPPORTED
+    sa-east-1:
+      PV64: ami-1ad34676
+      HVM64: ami-6dd04501
+      HVMG2: NOT_SUPPORTED
+    cn-north-1:
+      PV64: ami-77559f1a
+      HVM64: ami-8e6aa0e3
+      HVMG2: NOT_SUPPORTED
+Resources:
+  Instance:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Comment: Install datasbase instance
+      'AWS::CloudFormation::Init':
+        configSets:
+          InstallAndRun:
+            - Install
+            - Configure
+        Install:
+          packages:
+            yum:
+              mysql: []
+              mysql-server: []
+              mysql-libs: []
+          files:
+            /tmp/setup.mysql:
+              content: !Join 
+                - ''
+                - - |
+                    CREATE DATABASE IF NOT EXISTS employees;
+                  - 'GRANT ALL PRIVILEGES ON '
+                  - employees.* TO '
+                  - !Ref DBUser
+                  - '''@''%'' IDENTIFIED BY '''
+                  - !Ref DBPassword
+                  - |
+                    ';
+                  - 'GRANT ALL PRIVILEGES ON '
+                  - employees.* TO '
+                  - !Ref DBUser
+                  - '''@''localhost'' IDENTIFIED BY '''
+                  - !Ref DBPassword
+                  - |
+                    ';
+                  - |
+                    FLUSH PRIVILEGES;
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Join 
+                - ''
+                - - |
+                    [main]
+                  - stack=
+                  - !Ref 'AWS::StackId'
+                  - |+
+
+                  - region=
+                  - !Ref 'AWS::Region'
+                  - |+
+
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Join 
+                - ''
+                - - |
+                    [cfn-auto-reloader-hook]
+                  - |
+                    triggers=post.update
+                  - |
+                    path=Resources.Instance.Metadata.AWS::CloudFormation::Init
+                  - 'action=/opt/aws/bin/cfn-init -v '
+                  - '         --stack '
+                  - !Ref 'AWS::StackName'
+                  - '         --resource Instance '
+                  - '         --configsets InstallAndRun '
+                  - '         --region '
+                  - !Ref 'AWS::Region'
+                  - |+
+
+                  - |
+                    runas=root
+              mode: '000400'
+              owner: root
+              group: root
+          sources:
+            /tmp: 'https://github.com/datacharmer/test_db/archive/master.zip'
+          services:
+            sysvinit:
+              mysqld:
+                enabled: 'true'
+                ensureRunning: 'true'
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                  - /etc/cfn/cfn-hup.conf
+                  - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+        Configure:
+          commands:
+            01_set_mysql_root_password:
+              command: !Join 
+                - ''
+                - - mysqladmin -u root password '
+                  - !Ref DBRootPassword
+                  - ''''
+              test: !Join 
+                - ''
+                - - $(mysql employees -u root --password='
+                  - !Ref DBRootPassword
+                  - ''' >/dev/null 2>&1 </dev/null); (( $? != 0 ))'
+            02_create_database:
+              command: !Join 
+                - ''
+                - - mysql -u root --password='
+                  - !Ref DBRootPassword
+                  - |
+                    ' < /tmp/setup.mysql
+                  - |
+                    rm -f /tmp/setup.mysql
+              test: !Join 
+                - ''
+                - - $(mysql employees -u root --password='
+                  - !Ref DBRootPassword
+                  - ''' >/dev/null 2>&1 </dev/null); (( $? != 0 ))'
+            03_install_employees_data:
+              command: !Join 
+                - ''
+                - - |
+                    cd /tmp/test_db-master
+                  - mysql -uroot -p
+                  - !Ref DBRootPassword
+                  - |2
+                     < /tmp/test_db-master/employees.sql
+                  - |
+                    cd /tmp
+                  - |
+                    rm -rf /tmp/test_db-master
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Database MySQL Server
+      ImageId: !FindInMap 
+        - AWSRegionArch2AMI
+        - !Ref 'AWS::Region'
+        - !FindInMap 
+          - AWSInstanceType2Arch
+          - !Ref InstanceType
+          - Arch
+      InstanceType: !Ref InstanceType
+      KeyName: !If 
+        - ImportKeyName
+        - !ImportValue 
+          'Fn::Sub': '${ResourcesStackName}-KeyName'
+        - !Ref KeyName
+      NetworkInterfaces:
+        - GroupSet:
+            - !If 
+              - ImportDefaultSecurityGroup
+              - !ImportValue 
+                'Fn::Sub': '${ResourcesStackName}-DefaultSecurityGroup'
+              - !Ref DefaultSecurityGroup
+            - !Ref InstanceSecurityGroup
+          AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId: !If 
+            - ImportSubnet
+            - !ImportValue 
+              'Fn::Sub': '${ResourcesStackName}-Subnet1'
+            - !Ref Subnet
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -xe
+            - |
+              yum update -y
+            - |
+              yum update -y aws-cfn-bootstrap
+            - |
+              yum update -y aws-cli
+            - |
+              # Install the files and packages from the metadata
+            - '/opt/aws/bin/cfn-init -v '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource Instance '
+            - '         --configsets InstallAndRun '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - |+
+
+            - |
+              # Signal the status from cfn-init
+            - '/opt/aws/bin/cfn-signal -e $? '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource Instance '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - |+
+
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+  InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable database server internet access by user via port 3306
+      VpcId: !If 
+        - ImportVpcId
+        - !ImportValue 
+          'Fn::Sub': '${ResourcesStackName}-VpcId'
+        - !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: Database Server
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '3306'
+          ToPort: '3306'
+          CidrIp: !If 
+            - ImportSSHLocation
+            - !ImportValue 
+              'Fn::Sub': '${ResourcesStackName}-SSHLocation'
+            - !Ref SSHLocation
+Outputs:
+  PublicDBHostName:
+    Description: Public Datasource Host
+    Value: !GetAtt 
+      - Instance
+      - PublicDnsName
+  DBHostName:
+    Description: Datasource Host
+    Value: !GetAtt 
+      - Instance
+      - PrivateIp
+  DBUserName:
+    Description: Datasource User Name
+    Value: !Ref DBUser
+  DBUserPass:
+    Description: Datasource User Password
+    Value: !Ref DBPassword

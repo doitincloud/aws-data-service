@@ -1,0 +1,50 @@
+[
+  {
+    "ParameterKey" : "EMail",
+    "ParameterValue" : "YOUR-EMAIL"
+  },
+  { 
+    "ParameterKey" : "VpcId",
+    "ParameterValue" : "VPC-ID" 
+  },
+  { 
+    "ParameterKey" : "Subnets",
+    "ParameterValue" : "SUBNET-ONE-ID, SUBNET-TWO-ID" 
+  },
+  { 
+    "ParameterKey" : "SSHLocation",
+    "ParameterValue" : "MY-IP-ADDRESS/32"
+  },
+  { 
+    "ParameterKey" : "DefaultSecurityGroup",
+    "ParameterValue" : "DEFAULT-SECURITY-GROUP"
+  },
+  {
+    "ParameterKey" : "KeyName",
+    "ParameterValue" : "YOUR-SSH-KEY"
+  },
+  { 
+    "ParameterKey" : "S3Bucket",
+    "ParameterValue" : "DATASERVICE-BUCKET"
+  },
+  { 
+    "ParameterKey" : "InstanceRole",
+    "ParameterValue" : "INSTANCE-ROLE"
+  },
+  { 
+    "ParameterKey" : "InstanceProfile",
+    "ParameterValue" : "INSTANCE-PROFILE"
+  },
+  { 
+    "ParameterKey" : "CodeDeployRoleArn",
+    "ParameterValue" : "CODE-DEPLOY-ROLE-ARN"
+  },
+  { 
+    "ParameterKey" : "CodeDeployAppName",
+    "ParameterValue" : "CODE-DEPLOY-APP-NAME"
+  },
+  { 
+    "ParameterKey" : "NotificationTopic",
+    "ParameterValue" : "NOTIFICATION-TOPTIC-ARN"
+  }
+]

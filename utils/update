@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+##
+# Copyright 2017 Sam Wen.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+# update with code deploy
+#
+import sys
+import json
+import os
+import time
+
+import utils
+
+global verbose
+
+config = {}
+
+project_dir = os.path.dirname((os.path.dirname(os.path.abspath(__file__))))
+os.chdir(project_dir) 
+
+utils.update_parse_args(config)
+
+verbose = config['verbose']
+del(config['verbose'])
+
+if not 'JAR_FILE' in config:
+    config['JAR_FILE'] = 'server-1.0.0.jar'
+
+update_group = config['update_group']
+del(config['update_group'])
+
+#############################################################################################
+# make config file
+#
+configfile ='deployment/configure'
+utils.make_config_file(config, configfile)
+
+#############################################################################################
+# package, upload and make update deployment
+#
+utils.package_and_upload_to_s3_bucket('cd-update')
+utils.make_update_deployment_group(update_group)
+
+#############################################################################################
+# create deployment and deploy
+#
+s3_bucket = utils.get_s3_bucket()
+cd_appname = utils.get_cd_appname()
+
+cmd  = 'aws deploy create-deployment --application-name '+cd_appname
+cmd += ' --s3-location bucket='+s3_bucket+',key=deployment/cd-update.zip,bundleType=zip'
+cmd += ' --deployment-group-name '+update_group
+cmd += ' --file-exists-behavior OVERWRITE'
+cmd += ' --description "Dataservice Deployment at '+time.strftime('%Y%m%d-%H%M%S')+'"'
+jsonfile='tmp/deploy-result.json'
+utils.run(cmd, jsonfile)
+
+with open(jsonfile) as data_file:
+    data = json.load(data_file)
+    deployment_id = data['deploymentId']
+
+status = utils.check_deploy_in_progress(deployment_id)
+
+if status == 'Succeeded':
+    # replace cd-install.zip with cd-update.zip
+    cmd = 'aws s3 cp s3://'+s3_bucket+'/deployment/cd-update.zip s3://'+s3_bucket+'/deployment/cd-install.zip'
+    utils.run(cmd, '')
+    cmd = 'aws s3 rm s3://'+s3_bucket+'/deployment/cd-update.zip'
+    utils.run(cmd, '')
+
+    saved_folder = 'tmp/' + time.strftime('%Y%m%d-%H%M%S')
+    os.makedirs(saved_folder, exist_ok=True)
+    utils.run_exit_code('mv tmp/*.json '+ saved_folder, '')
+    utils.run_exit_code('mv tmp/*.text '+ saved_folder, '')

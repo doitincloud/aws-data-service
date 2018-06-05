@@ -1,0 +1,46 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:ListRoles",
+                "iam:ListRolePolicies",
+                "iam:ListInstanceProfiles",
+                "iam:ListInstanceProfilesForRole"
+            ],
+            "Resource": [
+                "arn:aws:iam::*:role/*",
+                "arn:aws:iam::*:instance-profile/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+
+                "iam:GetRole",
+                "iam:PassRole",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+
+                "iam:GetRolePolicy",
+                "iam:PutRolePolicy",
+                "iam:DeleteRolePolicy",
+
+                "iam:GetInstanceProfile",
+                "iam:CreateInstanceProfile",
+                "iam:DeleteInstanceProfile",
+
+                "iam:DeleteRolePolicy",
+                "iam:RemoveRoleFromInstanceProfile",
+
+                "iam:AddRoleToInstanceProfile",
+                "iam:RemoveRoleFromInstanceProfile"
+            ],
+            "Resource": [
+                "arn:aws:iam::*:role/Dataservice-*",
+                "arn:aws:iam::*:instance-profile/Dataservice-*"
+            ]
+        }
+    ]
+}
